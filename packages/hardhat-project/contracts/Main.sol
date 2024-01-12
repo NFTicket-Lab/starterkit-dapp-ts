@@ -8,15 +8,15 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract Main is OwnableUpgradeable{
     //deploy fee 1 eth
-    uint deploy_fee = 1 ether/10;
+    uint public deploy_fee = 1 ether/10;
     // price for batch Mint per page
-    uint batch_mint_fee = 5 ether / 10000;
+    uint public batch_mint_fee = 5 ether / 10000;
 
     mapping (string=>mapping(string=>Token)) tokenMap;
 
     event Withdrawal(uint amount, uint when);
-    event Deploy(address indexed user,string protocol,string tick,uint supply,uint limit);
-    event Mint(address indexed  user,string protocol,string tick,uint batch_page);
+    event Init_Deploy(address indexed user,string protocol,string tick,uint supply,uint limit);
+    event Mint(address indexed user,string protocol,string tick,uint batch_page);
 
     mapping(address => bool) public isManager;
 
@@ -47,9 +47,9 @@ contract Main is OwnableUpgradeable{
 
     //protocal: protocal name
     //tick: ticker name
-    function init_deploy(string memory protocal,string memory tick,uint maxSupply,uint pageLimit) public payable{
+    function deploy_mint(string memory protocal,string memory tick,uint maxSupply,uint pageLimit) public payable{
         //check the protocal and tick is exist
-        require(tokenMap[protocal][tick].maxSupply != 0,"ticker has exist");
+        require(tokenMap[protocal][tick].maxSupply == 0,"ticker has exist");
         require(maxSupply >= pageLimit,"supply less than pageLimit");
         Token memory token = Token(
             protocal,tick,maxSupply,pageLimit,maxSupply/pageLimit
@@ -60,7 +60,7 @@ contract Main is OwnableUpgradeable{
         require(pay_amount == deploy_fee,"payment not correct");
         
         uint init_page = pay_amount / batch_mint_fee;
-        emit Deploy(msg.sender,protocal,tick,maxSupply,pageLimit);
+        emit Init_Deploy(msg.sender,protocal,tick,maxSupply,pageLimit);
         emit Mint(msg.sender,protocal,tick,init_page);
     }
 
