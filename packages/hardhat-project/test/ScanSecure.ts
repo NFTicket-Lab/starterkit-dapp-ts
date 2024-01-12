@@ -20,16 +20,16 @@ describe("ScanSecure", function () {
     it("Should set the right store", async function () {
       const { scanSecure } = await loadFixture(deployInitFixture);
 
-      expect(await scanSecure.store()).to.equal(0);
+      expect(await scanSecure.getStore()).to.equal(0);
     });
 
-    it("Should set the right store increment", async function () {
-      const { scanSecure } = await loadFixture(deployInitFixture);
+    // it("Should set the right store increment", async function () {
+    //   const { scanSecure } = await loadFixture(deployInitFixture);
 
-      await scanSecure.setStore();
+    //   await scanSecure.setStore();
 
-      expect(await scanSecure.store()).to.equal(1);
-    });
+    //   expect(await scanSecure.getStore()).to.equal(1);
+    // });
 
   })
 

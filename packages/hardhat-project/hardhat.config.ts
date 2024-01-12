@@ -7,7 +7,7 @@ dotenv.config()
 const { INFURA_API_KEY, ETH_PRIVATE_KEY } = process.env
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.19",
+  solidity: "0.8.20",
   networks: {
     hardhat: {
       blockGasLimit: 3000000 // ! Default 30_000_000
