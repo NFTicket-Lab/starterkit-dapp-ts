@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
+
 contract Main is OwnableUpgradeable{
     //deploy fee 1 eth
     uint public deploy_fee = 1 ether/10;
@@ -27,8 +28,6 @@ contract Main is OwnableUpgradeable{
     }
 
     struct Token{
-        string protocal;
-        string tick;
         uint maxSupply;
         uint pageLimit;
         uint page;
@@ -52,12 +51,13 @@ contract Main is OwnableUpgradeable{
         require(tokenMap[protocal][tick].maxSupply == 0,"ticker has exist");
         require(maxSupply >= pageLimit,"supply less than pageLimit");
         Token memory token = Token(
-            protocal,tick,maxSupply,pageLimit,maxSupply/pageLimit
+            maxSupply,pageLimit,maxSupply/pageLimit
         );
         tokenMap[protocal][tick] = token;
 
         uint pay_amount = msg.value;
-        require(pay_amount == deploy_fee,"payment not correct");
+        require(pay_amount >= deploy_fee,"payment not enough");
+        require(pay_amount%pay_amount==0,"Paid amount must be a multiple of mintingPrice");
         
         uint init_page = pay_amount / batch_mint_fee;
         emit Init_Deploy(msg.sender,protocal,tick,maxSupply,pageLimit);
@@ -81,10 +81,16 @@ contract Main is OwnableUpgradeable{
     //owner whthdraw draw eth
     function withdraw() public onlyManager{
         address payable owner = payable(owner());
-        require(msg.sender == owner, "You aren't the owner");
 
         emit Withdrawal(address(this).balance, block.timestamp);
 
         owner.transfer(address(this).balance);
+    }
+
+    function setDeployFee(uint _deployFee)public onlyManager{
+        deploy_fee = _deployFee;
+    }
+    function setBatchMintFee(uint _batchMintFee)public onlyManager{
+        batch_mint_fee = _batchMintFee;
     }
 }
