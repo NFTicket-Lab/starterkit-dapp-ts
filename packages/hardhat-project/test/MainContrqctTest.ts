@@ -44,17 +44,22 @@ describe("Main contract init and test", () => {
 			expect(init_deploy_event?.at(0)?.args?.at(4)).to.be.equals(pageLimit);
 			expect(init_deploy_event?.at(0)?.address).to.be.equals(mainContract.address);
 
+			let token = await mainContract.tokenMap(protocol,tick);
+			expect(token.maxSupply).to.be.equals(maxSupply);
+			expect(token.pageLimit).to.be.equals(pageLimit);
+
 			//test the mint events
-			const batchMintFee = await mainContract.batch_mint_fee();
+			const pageMintFee = await mainContract.page_mint_fee();
 			const deployFee = await mainContract.deploy_fee();
-			const batch_page = deployFee.div(batchMintFee);
+			const batch_page = deployFee.div(pageMintFee);
 			console.log("batch_page is:",batch_page);
+			const batch_amt = batch_page.mul(pageLimit);
 			const mint_event = receipt.events?.filter((x)=>{return x.event=="Mint"});
 			// console.log("mint_event:",mint_event);
 			expect(mint_event?.at(0)?.args?.at(0)).to.be.equals(alice.address);
 			expect(mint_event?.at(0)?.args?.at(1)).to.be.equals(protocol);
 			expect(mint_event?.at(0)?.args?.at(2)).to.be.equals(tick);
-			expect(mint_event?.at(0)?.args?.at(3)).to.be.equals(batch_page);
+			expect(mint_event?.at(0)?.args?.at(3)).to.be.equals(batch_amt);
 			expect(mint_event?.at(0)?.address).to.be.equals(mainContract.address);
 			expect(batch_page.mul(pageLimit)).to.be.equals(BigNumber.from(10*200));
 			balanceOfContract = await ethers.provider.getBalance(mainContract.address);
@@ -77,17 +82,19 @@ describe("Main contract init and test", () => {
 			const tick = "ERC20";
 			const maxSupply = 1000;
 			const pageLimit = 10;
-			const batchPage = 5;
+			const pageMintFee = await mainContract.page_mint_fee();
+			let batchPage = 5
+			let batch_amt = batchPage*pageLimit;
 			
 			let balanceOfContract = await ethers.provider.getBalance(mainContract.address);
 			expect(balanceOfContract).to.be.equals(0);
 			console.log("before deploy balanceOfContract is:",balanceOfContract);
 			await mainContract.connect(alice).deploy_mint(protocol,tick,maxSupply,pageLimit,{value:initFee,from:alice.address});
-			await expect(mainContract.mint(protocol,"faketoken",batchPage)).to.be.revertedWith("ticker not exist");
-			let mintPayment = await mainContract.queryBatchMintPayable(batchPage);
-			console.log("mintPayment is:",mintPayment);
-			await expect(mainContract.connect(bob).mint(protocol,tick,batchPage,{from:bob.address,value:mintPayment.sub(1)})).to.be.revertedWith("payment not enough");
-			let tx = await mainContract.connect(bob).mint(protocol,tick,batchPage,{from:bob.address,value:mintPayment});
+			await expect(mainContract.mint(protocol,"faketoken")).to.be.revertedWith("ticker not exist");
+			let queryMintPayment = await mainContract.queryBatchMintPayable(protocol,tick,batch_amt);
+			console.log("mintPayment is:",queryMintPayment);
+			await expect(mainContract.connect(bob).mint(protocol,tick,{from:bob.address,value:pageLimit-1})).to.be.revertedWith("payment not enough");
+			let tx = await mainContract.connect(bob).mint(protocol,tick,{from:bob.address,value:queryMintPayment});
 			let receipt = await tx.wait();
 			//test the init deploy events
 			let mint_event = receipt.events?.filter((x)=>{return x.event=="Mint"});
@@ -95,11 +102,11 @@ describe("Main contract init and test", () => {
 			expect(mint_event?.at(0)?.args?.at(0)).to.be.equals(bob.address);
 			expect(mint_event?.at(0)?.args?.at(1)).to.be.equals(protocol);
 			expect(mint_event?.at(0)?.args?.at(2)).to.be.equals(tick);
-			expect(mint_event?.at(0)?.args?.at(3)).to.be.equals(batchPage);
+			expect(mint_event?.at(0)?.args?.at(3)).to.be.equals(batch_amt);
 			expect(mint_event?.at(0)?.address).to.be.equals(mainContract.address);
 
 			// pay more payment
-			tx = await mainContract.connect(bob).mint(protocol,tick,batchPage,{from:bob.address,value:mintPayment.mul(10)});
+			tx = await mainContract.connect(bob).mint(protocol,tick,{from:bob.address,value:queryMintPayment.mul(10)});
 			receipt = await tx.wait();
 			//test the init deploy events
 			mint_event = receipt.events?.filter((x)=>{return x.event=="Mint"});
@@ -107,13 +114,12 @@ describe("Main contract init and test", () => {
 			expect(mint_event?.at(0)?.args?.at(0)).to.be.equals(bob.address);
 			expect(mint_event?.at(0)?.args?.at(1)).to.be.equals(protocol);
 			expect(mint_event?.at(0)?.args?.at(2)).to.be.equals(tick);
-			expect(mint_event?.at(0)?.args?.at(3)).to.be.equals(batchPage*10);
+			expect(mint_event?.at(0)?.args?.at(3)).to.be.equals(batch_amt*10);
 			expect(mint_event?.at(0)?.address).to.be.equals(mainContract.address);
 
 			balanceOfContract = await ethers.provider.getBalance(mainContract.address);
 			console.log("balanceOfContract is:",balanceOfContract);
-			const batchMintFee = await mainContract.batch_mint_fee();
-			expect(balanceOfContract).to.be.equals(mintPayment.mul(11).add(initFee));
+			expect(balanceOfContract).to.be.equals(queryMintPayment.mul(11).add(initFee));
 
 			await mainContract.connect(owner).withdraw({from:owner.address});
 			balanceOfContract = await ethers.provider.getBalance(mainContract.address);

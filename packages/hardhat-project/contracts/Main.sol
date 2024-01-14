@@ -11,9 +11,9 @@ contract Main is OwnableUpgradeable{
     //deploy fee 1 eth
     uint public deploy_fee = 1 ether/10;
     // price for batch Mint per page
-    uint public batch_mint_fee = 5 ether / 10000;
+    uint public page_mint_fee = 5 ether / 10000;
 
-    mapping (string=>mapping(string=>Token)) tokenMap;
+    mapping(string=>mapping(string=>Token)) public tokenMap;
 
     event Withdrawal(uint amount, uint when);
     event Init_Deploy(address indexed user,string protocol,string tick,uint supply,uint limit);
@@ -57,24 +57,36 @@ contract Main is OwnableUpgradeable{
 
         uint pay_amount = msg.value;
         require(pay_amount >= deploy_fee,"payment not enough");
-        require(pay_amount%pay_amount==0,"Paid amount must be a multiple of mintingPrice");
+        require(pay_amount%page_mint_fee==0,"Paid amount must be a multiple of mintingPrice");
         
-        uint init_page = pay_amount / batch_mint_fee;
+        address userAddress = msg.sender;
         emit Init_Deploy(msg.sender,protocal,tick,maxSupply,pageLimit);
-        emit Mint(msg.sender,protocal,tick,init_page);
+        _mint(userAddress,protocal,tick,pay_amount);
     }
 
-    function mint(string memory protocal,string memory tick,uint batch_page) public payable{
+    function mint(string memory protocal,string memory tick) public payable{
         require(tokenMap[protocal][tick].maxSupply != 0,"ticker not exist");
         uint pay_amount = msg.value;
-        uint page = pay_amount / batch_mint_fee;
-        require(page >= batch_page ,"payment not enough");
-        emit Mint(msg.sender,protocal,tick,page);
+        require(pay_amount >= page_mint_fee,"payment not enough");
+        require(pay_amount%page_mint_fee==0,"Paid amount must be a multiple of mintingPrice");
+        address userAddress = msg.sender;
+        _mint(userAddress,protocal,tick,pay_amount);
+    }
+
+    function _mint(address userAddress,string memory protocol, string memory tick, uint256 receivedEth) internal {
+
+        // Calculate the amount using the formula: paidAmount / mintingPrice * lim
+        uint256 lim = tokenMap[protocol][tick].pageLimit;
+        uint256 amt = (receivedEth / page_mint_fee) * lim;
+
+        // Emit the MintedEvent with protocol, tick, and amt as parameters
+        emit Mint(userAddress,protocol, tick, amt);
     }
 
     //Query the required funds for batch issuance
-    function queryBatchMintPayable(uint batch_page)public view returns (uint mintPayable){
-        return batch_page * batch_mint_fee;
+    function queryBatchMintPayable(string memory protocol,string memory tick,uint batch_amt)public view returns (uint mintPayable){
+        uint256 lim = tokenMap[protocol][tick].pageLimit;
+        return batch_amt/lim * page_mint_fee;
     }
     
 
@@ -91,6 +103,6 @@ contract Main is OwnableUpgradeable{
         deploy_fee = _deployFee;
     }
     function setBatchMintFee(uint _batchMintFee)public onlyManager{
-        batch_mint_fee = _batchMintFee;
+        page_mint_fee = _batchMintFee;
     }
 }
