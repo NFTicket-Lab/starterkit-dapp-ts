@@ -68,8 +68,8 @@ describe("Main contract init and test", () => {
 			await expect(mainContract.deploy_mint(protocol,tick,1000,10,{value:initFee})).to.be.revertedWith("ticker has exist");
 
 			// test with draw 
-			await expect(mainContract.connect(alice).withdraw({from:alice.address})).to.be.revertedWith("Not manager");
-			await mainContract.connect(owner).withdraw({from:owner.address});
+			await expect(mainContract.connect(alice).withdraw(balanceOfContract,{from:alice.address})).to.be.revertedWith("Not manager");
+			await mainContract.connect(owner).withdraw(balanceOfContract,{from:owner.address});
 			balanceOfContract = await ethers.provider.getBalance(mainContract.address);
 			expect(balanceOfContract).to.be.equals(0);
 		});
@@ -82,7 +82,6 @@ describe("Main contract init and test", () => {
 			const tick = "ERC20";
 			const maxSupply = 1000;
 			const pageLimit = 10;
-			const pageMintFee = await mainContract.page_mint_fee();
 			let batchPage = 5
 			let batch_amt = batchPage*pageLimit;
 			
@@ -121,11 +120,50 @@ describe("Main contract init and test", () => {
 			console.log("balanceOfContract is:",balanceOfContract);
 			expect(balanceOfContract).to.be.equals(queryMintPayment.mul(11).add(initFee));
 
-			await mainContract.connect(owner).withdraw({from:owner.address});
+			await mainContract.connect(owner).withdraw(balanceOfContract,{from:owner.address});
 			balanceOfContract = await ethers.provider.getBalance(mainContract.address);
 			expect(balanceOfContract).to.be.equals(0);
 		});
 
-	});
+		it("over init token", async () => {
+			const {
+				main:mainContract, owner, alice,bob
+			} = await deployInitFixture();
+			const protocol = "protocol";
+			const tick = "ERC20";
+			const maxSupply = 1000;
+			const pageLimit = 10;
+			const pageMintFee = await mainContract.page_mint_fee();
+			const newInitFee = initFee.mul(2);
+			let batchPage = initFee.mul(2).div(pageMintFee);
+			let batch_amt = batchPage.mul(pageLimit);
+			
+			let balanceOfContract = await ethers.provider.getBalance(mainContract.address);
+			expect(balanceOfContract).to.be.equals(0);
+			console.log("before deploy balanceOfContract is:",balanceOfContract);
+			let tx = await mainContract.connect(alice).deploy_mint(protocol,tick,maxSupply,pageLimit,{value:newInitFee,from:alice.address});
+			let receipt = await tx.wait();
+			//test the init deploy events
+			let mint_event = receipt.events?.filter((x)=>{return x.event=="Mint"});
+			console.log("mint_event is:",mint_event);
+			expect(mint_event?.at(0)?.args?.at(0)).to.be.equals(alice.address);
+			expect(mint_event?.at(0)?.args?.at(1)).to.be.equals(protocol);
+			expect(mint_event?.at(0)?.args?.at(2)).to.be.equals(tick);
+			expect(mint_event?.at(0)?.args?.at(3)).to.be.equals(batch_amt);
+			expect(mint_event?.at(0)?.address).to.be.equals(mainContract.address);
 
-})
+			balanceOfContract = await ethers.provider.getBalance(mainContract.address);
+			console.log("after deploy balanceOfContract is:",balanceOfContract);
+			expect(balanceOfContract).to.be.equals(newInitFee);
+			await expect(mainContract.deploy_mint(protocol,tick,1000,10,{value:newInitFee})).to.be.revertedWith("ticker has exist");
+
+			// test with draw 
+			await expect(mainContract.connect(alice).withdraw(100,{from:alice.address})).to.be.revertedWith("Not manager");
+			await mainContract.connect(owner).withdraw(100,{from:owner.address});
+			balanceOfContract = await ethers.provider.getBalance(mainContract.address);
+			expect(balanceOfContract).to.be.equals(newInitFee.sub(100));
+	
+		});
+
+	});
+});

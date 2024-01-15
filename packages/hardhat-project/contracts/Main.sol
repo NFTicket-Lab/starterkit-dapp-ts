@@ -91,12 +91,9 @@ contract Main is OwnableUpgradeable{
     
 
     //owner whthdraw draw eth
-    function withdraw() public onlyManager{
-        address payable owner = payable(owner());
-
-        emit Withdrawal(address(this).balance, block.timestamp);
-
-        owner.transfer(address(this).balance);
+    function withdraw(uint amount) public onlyManager{
+        require(address(this).balance >= amount, "Insufficient balance");
+        payable(_msgSender()).transfer(amount);
     }
 
     function setDeployFee(uint _deployFee)public onlyManager{
