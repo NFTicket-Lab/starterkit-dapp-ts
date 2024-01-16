@@ -6,7 +6,7 @@ import { chains, wagmiConfig } from '@/config';
 import { AppPropsWithLayout } from '@/types';
 
 import "@rainbow-me/rainbowkit/styles.css";
-import ScanSecureProvider from '../providers/ScanSecureProvider';
+import MainProvider from '@/providers/MainProvider';
 
 export default function App({ Component, pageProps }: AppPropsWithLayout) {
     const getLayout = Component.getLayout ?? ((page) => page)
@@ -19,9 +19,9 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
             {mounted && (
                 <WagmiConfig config={wagmiConfig}>
                     <RainbowKitProvider chains={chains}>
-                        <ScanSecureProvider>
+                        <MainProvider>
                             {getLayout(<Component {...pageProps} />)}
-                        </ScanSecureProvider>
+                        </MainProvider>
                     </RainbowKitProvider>
                 </WagmiConfig>
             )}

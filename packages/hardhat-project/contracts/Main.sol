@@ -17,7 +17,7 @@ contract Main is OwnableUpgradeable{
 
     event Withdrawal(uint amount, uint when);
     event Init_Deploy(address indexed user,string protocol,string tick,uint supply,uint limit);
-    event Mint(address indexed user,string protocol,string tick,uint batch_page);
+    event Mint(address indexed user,string protocol,string tick,uint batch_amount);
 
     mapping(address => bool) public isManager;
 

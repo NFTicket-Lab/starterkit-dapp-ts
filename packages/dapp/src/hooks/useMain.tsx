@@ -20,6 +20,7 @@ export function useMain() {
     const [deployFee, setDepLoyFee] = useState<bigint>();
     const [pageMintFee, setPageMintFee] = useState<bigint>();
     const [tokenlist, setTokenlist] = useState<object[]>();
+    const [mintlist, setMintlist] = useState<object[]>();
 
     // Load contract
     const loadContract = useCallback(async () => {
@@ -29,8 +30,6 @@ export function useMain() {
                 address: getAddress(config.contracts.main.mainAddress),
                 abi: config.contracts.main.mainAbi
             })
-
-            await initialize();
 
             console.log('loadContract', c, await c.read.owner())
             const owner = await c.read.owner() ? String(await c.read.owner()) : null
@@ -123,7 +122,18 @@ export function useMain() {
             setNotif({ type: 'info', message: String(log[0].args.user) });
             getTokenlisted();
         }
-    })
+    });
+
+    // Events watcher
+    useContractEvent({
+        address: getAddress(config.contracts.main.mainAddress),
+        abi: config.contracts.main.mainAbi, // Warn with event in library
+        eventName: 'Mint',
+        listener(log) {
+            setNotif({ type: 'info', message: String(log[0].args.user) });
+            getMintlisted();
+        }
+    });
 
     // Events logs
     const getTokenlisted = async () => {
@@ -144,13 +154,38 @@ export function useMain() {
         setTokenlist(tokenlist)
     }
 
+    // Events logs
+    const getMintlisted = async () => {
+        const fromBlock = BigInt(Number(await client.getBlockNumber()) - 100)
+
+        const mintlistedLogs = await client.getLogs({
+            address: getAddress(config.contracts.main.mainAddress),
+            event: parseAbiItem(
+                "event Mint(address indexed user,string protocol,string tick,uint batch_amount)"
+            ),
+            fromBlock: Number(fromBlock) >= 0 ? fromBlock : BigInt(0),
+        });
+
+        const mintlist = (await Promise.all(mintlistedLogs.map(async (log, i) => {
+            return { id: Number(i + 1), user: String(log.args.user), protocol: log.args.protocol, tick: log.args.tick, batchAmount: log.args.batch_amount};
+        }))).map(w => w)
+
+        setTokenlist(mintlist)
+    }
+
     // Load Data/Storage
     useEffect(() => {
         if (!contractIsConnected) return;
         getTokenlisted()
     }, [contract, contractIsConnected])
 
+    // Load Data/Storage
+    useEffect(() => {
+        if (!contractIsConnected) return;
+        getMintlisted()
+    }, [contract, contractIsConnected])
+
     return {
-        contract, owner, isOwner, contractIsConnected, deployMint, mint, deployFee, pageMintFee
+        contract, owner, isOwner, contractIsConnected,tokenlist,mintlist, deployFee, pageMintFee,deployMint, mint,
     }
 }
