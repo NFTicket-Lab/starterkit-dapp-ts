@@ -10,6 +10,7 @@
     "deploy:local": "npx hardhat run scripts/deploy.ts --network localhost",
     "deploy:goerli": "npx hardhat run scripts/deploy.ts --network goerli",
     "deploy:sepolia": "npx hardhat run scripts/deploy.ts --network sepolia",
+    "deployMain:sepolia": "npx hardhat run scripts/deployMain.ts --network sepolia",
     "clean": "npx hardhat clean"
   },
   "devDependencies": {

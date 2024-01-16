@@ -5,6 +5,7 @@ import { publicProvider } from "wagmi/providers/public";
 import { infuraProvider } from '@wagmi/core/providers/infura'
 import { createPublicClient, http } from "viem";
 import { address, abi } from "./abis/scansecure";
+import { mainAddress, mainAbi } from "./abis/main";
 
 import {
     ledgerWallet,
@@ -23,6 +24,7 @@ export const { chains, publicClient } = configureChains(
         infuraProvider({ apiKey: `${process.env.NEXT_PUBLIC_INFURA_PROJECT_ID}` })
     ]
 );
+
 const { wallets } = getDefaultWallets({
     appName: `${process.env.NEXT_PUBLIC_WALLET_CONNECT_APPNAME}`,
     projectId: `${process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID}`,
@@ -89,6 +91,9 @@ export const config = {
     contracts: {
         scanSecure: {
             address, abi
+        },
+        main:{
+            mainAddress,mainAbi
         }
     }
 }

@@ -165,5 +165,33 @@ describe("Main contract init and test", () => {
 	
 		});
 
+		it("test set paramter", async () => {
+			const {
+				main:mainContract, owner, alice,bob
+			} = await deployInitFixture();
+			const protocol = "protocol";
+			const tick = "ERC20";
+			const maxSupply = 1000;
+			const pageLimit = 10;
+			const pageMintFee = await mainContract.page_mint_fee();
+			const newInitFee = initFee.mul(2);
+			
+			let balanceOfContract = await ethers.provider.getBalance(mainContract.address);
+			expect(balanceOfContract).to.be.equals(0);
+			console.log("before deploy balanceOfContract is:",balanceOfContract);
+			await mainContract.connect(alice).deploy_mint(protocol,tick,maxSupply,pageLimit,{value:newInitFee,from:alice.address});
+			let token = await mainContract.tokenMap(protocol,tick);
+			expect(token.maxSupply).to.be.equals(maxSupply);
+			expect(token.pageLimit).to.be.equals(pageLimit);
+
+			await expect(mainContract.connect(bob).setDeployFee(1,{from:bob.address})).to.be.revertedWith("Not manager");
+			await expect(mainContract.connect(bob).setBatchMintFee(1,{from:bob.address})).to.be.revertedWith("Not manager");
+			await mainContract.connect(owner).setDeployFee(1,{from:owner.address});
+			await mainContract.connect(owner).setBatchMintFee(1,{from:owner.address});
+			token = await mainContract.tokenMap(protocol,tick);
+			expect(await mainContract.deploy_fee()).to.be.equals(1);
+			expect(await mainContract.page_mint_fee()).to.be.equals(1);
+		});
+
 	});
 });

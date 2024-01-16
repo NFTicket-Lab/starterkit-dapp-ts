@@ -20,6 +20,7 @@
     "sc:deploy:local": "npm run deploy:local --workspace=hardhat-project",
     "sc:deploy:goerli": "npm run deploy:goerli --workspace=hardhat-project",
     "sc:deploy:sepolia": "npm run deploy:sepolia --workspace=hardhat-project",
+    "sc:deployMain:sepolia": "npm run deployMain:sepolia --workspace=hardhat-project",
     "sc:clean": "npm run clean --workspace=hardhat-project"
   }
 }

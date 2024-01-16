@@ -37,8 +37,8 @@ export function useScanSecure() {
     const [isOwner, setIsOwner] = useState<boolean>();
 
     const [store, setStore] = useState<number>();
+    
     const [whitelist, setWhitelist] = useState<object[]>();
-
     // Load contract
     const loadContract = useCallback(async () => {
         try {
